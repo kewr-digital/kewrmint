@@ -1,0 +1,14 @@
+version: v1beta1
+build:
+  roots:
+    - proto
+deps:
+  - buf.build/cosmos/cosmos-sdk
+  - buf.build/cosmos/cosmos-proto
+  - buf.build/cosmos/gogo-proto
+lint:
+  use:
+    - DEFAULT
+breaking:
+  use:
+    - FILE

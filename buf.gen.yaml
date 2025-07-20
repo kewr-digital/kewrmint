@@ -1,0 +1,14 @@
+version: v1
+plugins:
+  - plugin: buf.build/protocolbuffers/js:v3.21.2
+    out: src/types
+    opt:
+      - import_style=commonjs
+      - binary
+  - plugin: ts-proto
+    out: src/types
+    opt:
+      - snakeToCamel=false
+      - outputServices=false
+      - env=browser
+      - useExactTypes=false

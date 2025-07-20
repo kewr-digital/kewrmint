@@ -1,0 +1,29 @@
+syntax = "proto3";
+package atomone.photon.v1;
+
+import "gogoproto/gogo.proto";
+import "cosmos_proto/cosmos.proto";
+import "amino/amino.proto";
+
+option go_package = "github.com/atomone-hub/atomone/x/photon/types";
+
+// Params defines the parameters for the photon module.
+message Params {
+  option (amino.name) = "atomone/x/photon/v1/Params";
+  option (gogoproto.equal) = true;
+  option (gogoproto.goproto_stringer) = false;
+
+  // conversion_rate defines the rate at which atone is converted to photon
+  string conversion_rate = 1 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
+    (gogoproto.nullable) = false
+  ];
+
+  // max_mint_amount defines the maximum amount of photon that can be minted
+  string max_mint_amount = 2 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.nullable) = false
+  ];
+}
