@@ -1,0 +1,9 @@
+{
+  "apps": [
+    {
+      "name": "kewrmint",
+      "script": "npm",
+      "args": ["run", "serve"]
+    }
+  ]
+}
