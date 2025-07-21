@@ -189,27 +189,6 @@ function SectionDocs() {
               </div>
             </div>
 
-            <div className="bg-gray-900 rounded-md p-4 border border-gray-600">
-              <h4 className="font-semibold mb-2 text-cyan-400">
-                {language === "id" ? "Parameter Photon:" : "Photon Parameters:"}
-              </h4>
-              <pre className="text-sm text-gray-300">
-                {language === "id"
-                  ? `interface Params {
-  // Rate konversi ATONE ke Photon
-  conversion_rate: string;
-  // Maksimum jumlah Photon yang bisa di-mint (1 miliar)
-  max_mint_amount: string;
-}`
-                  : `interface Params {
-  // ATONE to Photon conversion rate
-  conversion_rate: string;
-  // Maximum amount of Photon that can be minted (1 billion)
-  max_mint_amount: string;
-}`}
-              </pre>
-            </div>
-
             <div className="mt-4 p-3 bg-blue-900/30 border border-blue-700/50 rounded-md">
               <p className="text-blue-300 text-sm">
                 <strong>{language === "id" ? "Sumber:" : "Source:"}</strong>{" "}
@@ -315,14 +294,17 @@ function SectionDocs() {
               <h4 className="font-semibold mb-2 text-cyan-400">
                 {language === "id" ? "Parameter Photon:" : "Photon Parameters:"}
               </h4>
-              <pre className="text-sm text-gray-300">
-                {`interface Params {
+              <div className="bg-gray-800 rounded p-2 sm:p-3 overflow-x-auto">
+                <code className="text-xs sm:text-sm text-gray-300 block whitespace-pre-wrap break-all">
+                  {`interface Params {
   // Rate Conversion $ATONE to $PHOTON
   conversion_rate: string;
-  // Maximum amount of $PHOTON that can be minted (1 billion)
+  // Maximum amount of $PHOTON that can be
+  // minted (1 billion)
   max_mint_amount: string;
 }`}
-              </pre>
+                </code>
+              </div>
             </div>
 
             <div className="mt-4 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-md">

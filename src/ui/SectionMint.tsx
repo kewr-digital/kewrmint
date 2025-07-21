@@ -49,7 +49,8 @@ function SectionMint() {
 
     try {
       setIsLoadingRate(true);
-      const queryClient = client.forceGetQueryClient();
+      // Type assertion untuk mengakses protected method
+      const queryClient = (client as any).forceGetQueryClient();
       const bankExtension = setupBankExtension(queryClient);
 
       const atoneSupplyResult = await bankExtension.bank.supplyOf("uatone");
@@ -285,6 +286,40 @@ function SectionMint() {
               </div>
               <div className="text-xs text-gray-400">
                 {address ? `${address.slice(0, 8)}...${address.slice(-6)}` : ""}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Supply Information Card */}
+        {isConnected && (
+          <div className="bg-gray-800 backdrop-blur-lg rounded-xl p-4 mb-4 border border-gray-700">
+            <div className="text-center mb-3">
+              <h3 className="text-sm font-medium text-gray-300 mb-2">
+                Supply Information
+              </h3>
+              {isLoadingRate ? (
+                <div className="text-sm text-gray-400">
+                  Loading supply data...
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-xs text-gray-400">ATONE Supply</div>
+                    <div className="text-sm font-semibold text-cyan-400">
+                      {atoneSupply.toLocaleString()} ATONE
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-400">PHOTON Supply</div>
+                    <div className="text-sm font-semibold text-indigo-400">
+                      {photonSupply.toLocaleString()} PHOTON
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="mt-2 text-xs text-gray-400">
+                Conversion Rate: 1 ATONE = {conversionRate.toFixed(6)} PHOTON
               </div>
             </div>
           </div>
