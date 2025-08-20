@@ -17,14 +17,13 @@ interface WalletState {
 }
 
 const CHAIN_ID = "atomone-1";
-const RPC_ENDPOINT = "https://m-atomone.rpc.utsa.tech";
+const RPC_ENDPOINT = "https://rpc-atomone.22node.xyz";
 
-// Konfigurasi chain lengkap untuk Keplr
 const CHAIN_CONFIG = {
   chainId: "atomone-1",
   chainName: "AtomOne",
-  rpc: "https://m-atomone.rpc.utsa.tech",
-  rest: "https://m-atomone.api.utsa.tech",
+  rpc: "https://rpc-atomone.22node.xyz",
+  rest: "https://rest-atomone.22node.xyz",
   bip44: {
     coinType: 118,
   },
@@ -93,14 +92,12 @@ const broadcastWalletStateChange = (newState: WalletState) => {
 };
 
 // Create custom registry with MsgMintPhoton
-// Untuk memperbaiki error registry, tambahkan type assertion:
 const createCustomRegistry = (): Registry => {
   const registry = new Registry(defaultRegistryTypes);
   registry.register(MSG_MINT_PHOTON_TYPE_URL, MsgMintPhoton as any);
   return registry;
 };
 
-// Fungsi untuk suggest chain ke Keplr
 const suggestChainToKeplr = async (): Promise<void> => {
   if (!window.keplr) {
     throw new Error("Keplr extension not found");
@@ -117,7 +114,6 @@ export const useKeplrWallet = () => {
   const [walletState, setWalletState] =
     useState<WalletState>(globalWalletState);
 
-  // Listen untuk perubahan state dari komponen lain
   useEffect(() => {
     const handleWalletStateChange = (event: CustomEvent) => {
       const newState = event.detail as WalletState;
@@ -137,7 +133,6 @@ export const useKeplrWallet = () => {
     };
   }, []);
 
-  // Auto-reconnect on page load if wallet was previously connected
   useEffect(() => {
     const autoReconnect = async () => {
       const savedState = localStorage.getItem("keplr-wallet-state");

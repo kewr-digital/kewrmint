@@ -49,7 +49,6 @@ function SectionMint() {
 
     try {
       setIsLoadingRate(true);
-      // Type assertion untuk mengakses protected method
       const queryClient = (client as any).forceGetQueryClient();
       const bankExtension = setupBankExtension(queryClient);
 
@@ -91,9 +90,7 @@ function SectionMint() {
     setMintedAmount("");
   };
 
-  // Handle mint transaction
   const handleMint = async () => {
-    // Enhanced validation
     if (!isConnected) {
       setError("Wallet is not connected. Please connect your wallet first.");
       return;
@@ -116,7 +113,6 @@ function SectionMint() {
       return;
     }
 
-    // Validate address format
     if (!address.startsWith("atone")) {
       setError(
         `Invalid address format: ${address}. Expected address starting with 'atone'.`
@@ -129,10 +125,7 @@ function SectionMint() {
     setSuccess("");
 
     try {
-      // Capture and validate address immediately before transaction
       const currentAddress = address?.trim();
-
-      // Final address validation
       if (
         !currentAddress ||
         currentAddress === "" ||
@@ -159,7 +152,7 @@ function SectionMint() {
         gas: "250000",
       };
 
-      const memo = "Mint Photon with KewrMint";
+      const memo = "Mint Photon with 22Node App";
 
       if (!mintMsg.value.to_address || mintMsg.value.to_address === "") {
         throw new Error(
@@ -167,25 +160,20 @@ function SectionMint() {
         );
       }
 
-      // Sign and broadcast the transaction
       const result = await client.signAndBroadcast(
-        currentAddress, // Use captured address
+        currentAddress,
         [mintMsg],
         fee,
         memo
       );
 
       if (result.code === 0) {
-        // Langsung gunakan photonAmount yang sudah dihitung dengan benar
-        // Tidak perlu parsing event yang rumit
         const finalMintedAmount = photonAmount;
 
-        // Debug logging untuk memastikan nilai yang benar
         console.log("Calculated photonAmount:", photonAmount);
         console.log("Amount input:", amount);
         console.log("Conversion rate:", conversionRate);
 
-        // Show modal dengan nilai yang benar
         setMintedAmount(finalMintedAmount);
         setTxHash(result.transactionHash);
         setShowSuccessModal(true);
@@ -212,7 +200,6 @@ function SectionMint() {
     }
   };
 
-  // Handle max button click
   const handleMaxClick = async () => {
     if (!client || !address) return;
 
@@ -220,19 +207,18 @@ function SectionMint() {
       const balance = await client.getBalance(address, "uatone");
       const maxAmount = (parseFloat(balance.amount) / 1_000_000 - 0.01).toFixed(
         6
-      ); // Reserve for fees
+      );
       setAmount(maxAmount);
       setUserBalance(parseFloat(maxAmount));
     } catch (err) {
       setError("Failed to fetch balance. Please try again.");
-      setAmount("100"); // Fallback
+      setAmount("100");
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-900 py-4">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
             Mint <span className="text-cyan-400">$PHOTON</span>
@@ -242,7 +228,6 @@ function SectionMint() {
           </p>
         </div>
 
-        {/* Wallet Connection Notice */}
         {!isConnected && (
           <div className="bg-yellow-900/30 border border-yellow-700/50 rounded-lg p-3 mb-4">
             <div className="flex items-center space-x-2">
@@ -265,14 +250,12 @@ function SectionMint() {
                 </h3>
                 <p className="text-xs text-yellow-300">
                   Please connect your wallet using the "Connect Wallet" button
-                  in the navigation bar above.
                 </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* User Balance Card */}
         {isConnected && (
           <div className="bg-gray-800 backdrop-blur-lg rounded-xl p-4 mb-4 border border-gray-700">
             <div className="text-center">
@@ -291,7 +274,6 @@ function SectionMint() {
           </div>
         )}
 
-        {/* Supply Information Card */}
         {isConnected && (
           <div className="bg-gray-800 backdrop-blur-lg rounded-xl p-4 mb-4 border border-gray-700">
             <div className="text-center mb-3">
@@ -325,10 +307,8 @@ function SectionMint() {
           </div>
         )}
 
-        {/* Main Mint Card */}
         <div className="bg-gray-800 backdrop-blur-lg rounded-2xl p-6 border border-gray-700 shadow-2xl mb-4">
           <div className="space-y-4">
-            {/* From Token */}
             <div className="space-y-2">
               <label className="text-xs font-medium text-gray-300">
                 Burn ATONE
@@ -369,7 +349,6 @@ function SectionMint() {
               </div>
             </div>
 
-            {/* Arrow */}
             <div className="flex justify-center">
               <div className="bg-cyan-600 rounded-full p-2">
                 <svg
@@ -388,7 +367,6 @@ function SectionMint() {
               </div>
             </div>
 
-            {/* To Token */}
             <div className="space-y-2">
               <label className="text-xs font-medium text-gray-300">
                 Mint PHOTON
@@ -406,21 +384,18 @@ function SectionMint() {
               </div>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-3">
                 <p className="text-red-300 text-xs">{error}</p>
               </div>
             )}
 
-            {/* Success Message */}
             {success && (
               <div className="bg-green-900/30 border border-green-700/50 rounded-lg p-3">
                 <p className="text-green-300 text-xs">{success}</p>
               </div>
             )}
 
-            {/* Transaction Hash Link */}
             {txHash && (
               <div className="bg-green-900/30 border border-green-700/50 rounded-lg p-3">
                 <p className="text-green-300 text-xs">
@@ -437,7 +412,6 @@ function SectionMint() {
               </div>
             )}
 
-            {/* Mint Button */}
             <button
               onClick={handleMint}
               disabled={

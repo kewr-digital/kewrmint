@@ -9,7 +9,7 @@ function Footer() {
           <div className="col-span-1">
             <div className="flex items-center space-x-3 mb-4">
               <CommandLineIcon className="h-8 w-8 text-cyan-400" />
-              <h3 className="text-xl font-bold text-white">Kewrmint</h3>
+              <h3 className="text-xl font-bold text-white">22Node</h3>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
               A decentralized application for minting PHOTON tokens on the
@@ -79,22 +79,22 @@ function Footer() {
               </li>
               <li>
                 <a
-                  href="https://cosmos.network/"
+                  href="https://cosmos.github.io/cosmjs/latest/stargate/modules.html"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-cyan-400 transition-colors duration-200"
                 >
-                  Cosmos Network
+                  CosmJs
                 </a>
               </li>
               <li>
                 <a
-                  href="https://docs.cosmos.network/"
+                  href="https://atom.one/blog/atomone-v2-the-photon-powered-upgrade/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-cyan-400 transition-colors duration-200"
                 >
-                  Cosmos SDK Docs
+                  Photon
                 </a>
               </li>
             </ul>
@@ -106,28 +106,12 @@ function Footer() {
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-gray-400 text-sm">
               <p>
-                © {new Date().getFullYear()} Kewrmint. Built on AtomOne
-                blockchain.
-              </p>
-            </div>
-            <div className="text-gray-400 text-sm">
-              <p>
                 Maintained by{" "}
                 <span className="text-cyan-400 font-semibold">
-                  Kewr Foundation
+                  🇮🇩 Kewr Foundation
                 </span>
               </p>
             </div>
-          </div>
-
-          {/* Disclaimer */}
-          <div className="mt-4 p-3 bg-gray-800 rounded-md border border-gray-700">
-            <p className="text-gray-400 text-xs text-center">
-              <strong className="text-yellow-400">Disclaimer:</strong> This
-              application is provided as-is for educational and experimental
-              purposes. Please use at your own risk and ensure you understand
-              the implications of minting PHOTON tokens.
-            </p>
           </div>
         </div>
       </div>

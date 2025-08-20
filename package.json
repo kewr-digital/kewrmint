@@ -1,5 +1,5 @@
 {
-  "name": "kewrmint",
+  "name": "22node",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -12,8 +12,11 @@
     "serve": "serve -s ./dist -l 5173"
   },
   "dependencies": {
+    "@cosmjs/crypto": "^0.34.0",
+    "@cosmjs/encoding": "^0.34.0",
     "@cosmjs/proto-signing": "^0.34.0",
     "@cosmjs/stargate": "^0.34.0",
+    "@cosmjs/tendermint-rpc": "^0.34.0",
     "@grpc/grpc-js": "^1.13.4",
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",

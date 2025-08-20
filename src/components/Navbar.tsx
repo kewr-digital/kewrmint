@@ -12,8 +12,10 @@ import { Link, useLocation } from "react-router";
 import { useKeplrWallet } from "../hooks/useKeplrWallet";
 
 const navigation = [
-  { name: "Mint", href: "/", current: false },
-  { name: "Docs", href: "/docs", current: false },
+  { name: "Home", href: "/", current: false },
+  { name: "Explorer", href: "/explorer", current: false },
+  { name: "Mint", href: "/mint", current: false },
+  { name: "About", href: "/about", current: false },
 ];
 
 function classNames(...classes: (string | boolean | undefined)[]): string {
@@ -53,7 +55,7 @@ export default function Navbar() {
           <div className="flex shrink-0 items-center">
             <Link to="/" className="flex items-center space-x-2">
               <CommandLineIcon className="h-8 w-8 text-cyan-400" />
-              <div className="text-2xl font-bold text-cyan-400">Kewrmint</div>
+              <div className="text-2xl font-bold text-cyan-400">22Node</div>
             </Link>
           </div>
 

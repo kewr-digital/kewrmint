@@ -1,7 +1,7 @@
 {
   "apps": [
     {
-      "name": "kewrmint",
+      "name": "22Node",
       "script": "npm",
       "args": ["run", "serve"]
     }
