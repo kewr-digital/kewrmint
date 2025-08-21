@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Comet38Client } from "@cosmjs/tendermint-rpc";
 import { toHex } from "@cosmjs/encoding";
 import { sha256 } from "@cosmjs/crypto";
@@ -73,13 +73,12 @@ function SectionExplorer() {
       setLoading(true);
 
       const client = await Comet38Client.connect(RPC_ENDPOINT);
-      const latestBlock = await client.block();
       const status = await client.status();
       const chainId = status.nodeInfo.network;
-      const height = latestBlock.block.header.height;
+      const height = status.syncInfo.latestBlockHeight;
 
       try {
-        const validators = await client.validators({ height: height });
+        await client.validators({ height: height });
       } catch (validatorError) {
         // Validators info not critical for main functionality
       }
@@ -101,252 +100,99 @@ function SectionExplorer() {
     }
   };
 
-  const decodeTransactionData = (txBytes: Uint8Array, txEvents?: any[]) => {
+  const decodeTransactionData = async (txBytes: Uint8Array) => {
     try {
-      // Gunakan decodeTxRaw dari CosmJS untuk decode yang lebih akurat
       const decodedTx = decodeTxRaw(txBytes);
-
-      console.log("=== COSMJS DECODED TRANSACTION ===");
-      console.log("Decoded TX Raw:", decodedTx);
-      console.log("Auth Info:", decodedTx.authInfo);
-      console.log("Body:", decodedTx.body);
-      console.log("Signatures:", decodedTx.signatures);
-
-      const readableData: {
-        size: number;
-        hex: string;
-        messages: any[];
-        rawData: number[];
-        readableStrings?: string[];
-        detectedMessageTypes?: string[];
-        addresses?: string[];
-        amounts?: string[];
-        error?: string;
-        cosmjsDecoded?: any;
-      } = {
-        size: txBytes.length,
-        hex: toHex(txBytes).slice(0, 100) + "...",
-        messages: [],
-        rawData: Array.from(txBytes.slice(0, 50)),
-        cosmjsDecoded: decodedTx,
-      };
-
-      // Extract messages dari decoded transaction
-      const messages = decodedTx.body.messages || [];
-      const detectedTypes: string[] = [];
-      const addresses: string[] = [];
+      const detectedMessageTypes: string[] = [];
       const amounts: string[] = [];
+      const addresses: string[] = [];
 
-      console.log("=== PROCESSING MESSAGES ===");
-      console.log("Total messages:", messages.length);
-
-      messages.forEach((msg, index) => {
-        console.log(`=== Message ${index} Full Debug ===`);
-        console.log(`Type URL:`, msg.typeUrl);
-        console.log(`Value keys:`, Object.keys(msg.value || {}));
-        console.log(`Full value:`, JSON.stringify(msg.value, null, 2));
-        console.log(`Raw message:`, JSON.stringify(msg, null, 2));
-        console.log(`=====================================`);
-
-        // Extract message type
-        const typeUrl = msg.typeUrl || "";
-        const msgType = typeUrl.split(".").pop() || "Unknown";
-        detectedTypes.push(msgType);
-
-        console.log(`Message ${index} type:`, msgType);
-        console.log(`Message ${index} value:`, msg.value);
-
-        // Extract data berdasarkan message type
-        if (msg.value) {
-          // Untuk MsgSend
-          if (typeUrl.includes("MsgSend")) {
-            console.log(`=== MsgSend Debug Info ===`);
-            console.log(`Full msg.value:`, JSON.stringify(msg.value, null, 2));
-
-            // Fix: Gunakan field names yang benar (dengan underscore)
-            if (msg.value.from_address) addresses.push(msg.value.from_address);
-            if (msg.value.to_address) addresses.push(msg.value.to_address);
-
-            // Fallback untuk camelCase jika ada
-            if (msg.value.fromAddress) addresses.push(msg.value.fromAddress);
-            if (msg.value.toAddress) addresses.push(msg.value.toAddress);
-
-            // Extract amounts dari MsgSend - struktur yang benar
-            let foundAmounts = false;
-
-            // Pattern yang benar: amount adalah array dengan objek {denom, amount}
-            if (msg.value.amount && Array.isArray(msg.value.amount)) {
-              msg.value.amount.forEach((coin: any, coinIndex: number) => {
-                console.log(`  Coin ${coinIndex}:`, coin);
-                if (
-                  coin &&
-                  typeof coin === "object" &&
-                  coin.amount &&
-                  coin.denom
-                ) {
-                  amounts.push(`${coin.amount}${coin.denom}`);
-                  console.log(
-                    `Found amount (MsgSend): ${coin.amount}${coin.denom}`
-                  );
-                  foundAmounts = true;
-                }
-              });
-            }
-
-            if (!foundAmounts) {
-              console.log(
-                `⚠️  No amounts found in MsgSend. Full structure:`,
-                msg.value
-              );
-            } else {
-              console.log(
-                `✅ Successfully found ${amounts.length} amounts in MsgSend`
-              );
-            }
-          }
-
-          // Untuk MsgDelegate/MsgUndelegate
-          else if (
-            typeUrl.includes("MsgDelegate") ||
-            typeUrl.includes("MsgUndelegate")
-          ) {
-            // Fix: Gunakan field names yang benar (dengan underscore)
-            if (msg.value.delegator_address)
-              addresses.push(msg.value.delegator_address);
-            if (msg.value.validator_address)
-              addresses.push(msg.value.validator_address);
-
-            // Fallback untuk camelCase jika ada
-            if (msg.value.delegatorAddress)
-              addresses.push(msg.value.delegatorAddress);
-            if (msg.value.validatorAddress)
-              addresses.push(msg.value.validatorAddress);
-
-            if (
-              msg.value.amount &&
-              msg.value.amount.amount &&
-              msg.value.amount.denom
-            ) {
-              amounts.push(
-                `${msg.value.amount.amount}${msg.value.amount.denom}`
-              );
-              console.log(
-                `Found amount in delegation: ${msg.value.amount.amount}${msg.value.amount.denom}`
-              );
-            }
-          }
-
-          // Untuk MsgTransfer (IBC)
-          else if (typeUrl.includes("MsgTransfer")) {
-            if (msg.value.sender) addresses.push(msg.value.sender);
-            if (msg.value.receiver) addresses.push(msg.value.receiver);
-
-            if (
-              msg.value.token &&
-              msg.value.token.amount &&
-              msg.value.token.denom
-            ) {
-              amounts.push(`${msg.value.token.amount}${msg.value.token.denom}`);
-              console.log(
-                `Found amount in IBC transfer: ${msg.value.token.amount}${msg.value.token.denom}`
-              );
-            }
-          }
-
-          // Generic extraction untuk message types lainnya
-          else {
-            // Cari semua field yang mengandung address pattern
-            const extractAddressesFromObject = (obj: any, prefix = "") => {
-              if (typeof obj === "string") {
-                const addressPattern =
-                  /(atone1[a-z0-9]{38}|atonevaloper1[a-z0-9]{38}|cosmos1[a-z0-9]{38}|cosmosvaloper1[a-z0-9]{38})/g;
-                const foundAddresses = obj.match(addressPattern) || [];
-                addresses.push(...foundAddresses);
-              } else if (typeof obj === "object" && obj !== null) {
-                Object.keys(obj).forEach((key) => {
-                  extractAddressesFromObject(obj[key], `${prefix}.${key}`);
-                });
-              }
+      decodedTx.body.messages.forEach((msg: unknown) => {
+        const message = msg as {
+          typeUrl?: string;
+          value?: {
+            amount?: unknown;
+            from_address?: string;
+            to_address?: string;
+            fromAddress?: string;
+            toAddress?: string;
+            delegatorAddress?: string;
+            validatorAddress?: string;
+            sender?: string;
+            receiver?: string;
+            token?: {
+              amount?: string;
+              denom?: string;
             };
+          };
+        };
 
-            extractAddressesFromObject(msg.value);
+        const typeUrl = message.typeUrl || "Unknown";
+        detectedMessageTypes.push(typeUrl);
+
+        if (typeUrl === "/cosmos.bank.v1beta1.MsgSend") {
+          // Extract amounts
+          const amountData = message.value?.amount;
+          if (Array.isArray(amountData)) {
+            amountData.forEach((coin: unknown) => {
+              const coinData = coin as { amount?: string; denom?: string };
+              if (coinData?.amount && coinData?.denom) {
+                amounts.push(`${coinData.amount}${coinData.denom}`);
+              }
+            });
           }
+
+          // Extract addresses
+          if (message.value?.from_address)
+            addresses.push(message.value.from_address);
+          if (message.value?.to_address)
+            addresses.push(message.value.to_address);
+          if (message.value?.fromAddress)
+            addresses.push(message.value.fromAddress);
+          if (message.value?.toAddress) addresses.push(message.value.toAddress);
+        } else if (
+          typeUrl === "/cosmos.staking.v1beta1.MsgDelegate" ||
+          typeUrl === "/cosmos.staking.v1beta1.MsgUndelegate"
+        ) {
+          const amountData = message.value?.amount as
+            | {
+                amount?: string;
+                denom?: string;
+              }
+            | undefined;
+          if (amountData?.amount && amountData?.denom) {
+            amounts.push(`${amountData.amount}${amountData.denom}`);
+          }
+          if (message.value?.delegatorAddress) {
+            addresses.push(message.value.delegatorAddress);
+          }
+          if (message.value?.validatorAddress) {
+            addresses.push(message.value.validatorAddress);
+          }
+        } else if (typeUrl === "/ibc.applications.transfer.v1.MsgTransfer") {
+          if (message.value?.token?.amount && message.value?.token?.denom) {
+            amounts.push(
+              `${message.value.token.amount}${message.value.token.denom}`
+            );
+          }
+          if (message.value?.sender) addresses.push(message.value.sender);
+          if (message.value?.receiver) addresses.push(message.value.receiver);
         }
       });
 
-      // Extract amounts dari transaction events jika tersedia
-      if (txEvents && Array.isArray(txEvents)) {
-        console.log("=== EXTRACTING AMOUNTS FROM EVENTS ===");
-        console.log("TX Events:", txEvents);
-
-        txEvents.forEach((event, eventIndex) => {
-          console.log(`Event ${eventIndex}:`, event);
-
-          if (event.type === "transfer" && event.attributes) {
-            event.attributes.forEach((attr: any) => {
-              if (attr.key === "amount" && attr.value) {
-                console.log(`Found transfer amount: ${attr.value}`);
-                amounts.push(attr.value);
-              }
-            });
-          }
-
-          // Juga cek event coin_spent dan coin_received untuk amount
-          if (
-            (event.type === "coin_spent" || event.type === "coin_received") &&
-            event.attributes
-          ) {
-            event.attributes.forEach((attr: any) => {
-              if (attr.key === "amount" && attr.value) {
-                console.log(`Found ${event.type} amount: ${attr.value}`);
-                amounts.push(attr.value);
-              }
-            });
-          }
-        });
-
-        console.log("Amounts from events:", amounts);
-      }
-
-      // Extract fee information dari authInfo
-      if (
-        decodedTx.authInfo &&
-        decodedTx.authInfo.fee &&
-        decodedTx.authInfo.fee.amount
-      ) {
-        decodedTx.authInfo.fee.amount.forEach((coin: any) => {
-          if (coin.amount && coin.denom) {
-            console.log(`Found fee: ${coin.amount}${coin.denom}`);
-            // Fee tidak ditambahkan ke amounts karena berbeda dengan transfer amounts
-          }
-        });
-      }
-
-      // Remove duplicates
-      readableData.detectedMessageTypes = [...new Set(detectedTypes)];
-      readableData.addresses = [...new Set(addresses)];
-      readableData.amounts = [...new Set(amounts)];
-      readableData.messages = messages;
-
-      console.log("=== FINAL EXTRACTED DATA ===");
-      console.log("Detected message types:", readableData.detectedMessageTypes);
-      console.log("Extracted addresses:", readableData.addresses);
-      console.log("Extracted amounts:", readableData.amounts);
-      console.log("==============================");
-
-      return readableData;
-    } catch (error) {
-      console.error("Error decoding transaction with CosmJS:", error);
-
-      // Fallback ke metode lama jika decodeTxRaw gagal
       return {
-        error: `Failed to decode with CosmJS: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-        size: txBytes.length,
-        rawData: Array.from(txBytes.slice(0, 20)),
-        messages: [],
-        hex: toHex(txBytes).slice(0, 100) + "...",
+        detectedMessageTypes,
+        amounts,
+        addresses,
+        success: true,
+      };
+    } catch (error) {
+      console.error("Error decoding transaction:", error);
+      return {
+        detectedMessageTypes: ["Unknown"],
+        amounts: [],
+        addresses: [],
+        success: false,
       };
     }
   };
@@ -375,20 +221,7 @@ function SectionExplorer() {
 
             try {
               const txResult = await client.tx({ hash: sha256(tx) });
-              const decodedTx = decodeTransactionData(
-                tx,
-                txResult.result.events
-              );
-
-              // Console log untuk decoded transaction data
-              console.log("=== DECODED TRANSACTION DATA ===");
-              console.log("TX Hash:", txHash);
-              console.log("Block Height:", blockHeight);
-              console.log("Decoded TX:", decodedTx);
-              console.log("Detected Types:", decodedTx.detectedMessageTypes);
-              console.log("Addresses:", decodedTx.addresses);
-              console.log("Amounts:", decodedTx.amounts);
-              console.log("Readable Strings:", decodedTx.readableStrings);
+              const decodedTx = await decodeTransactionData(tx);
 
               let feeAmount = "0";
               let feeDenom = "uatone";
@@ -434,7 +267,6 @@ function SectionExplorer() {
                     value: {
                       addresses: decodedTx.addresses || [],
                       amounts: decodedTx.amounts || [],
-                      size: decodedTx.size,
                     },
                   });
                 }
@@ -442,9 +274,6 @@ function SectionExplorer() {
                 messages.push({
                   type: "Unknown Transaction",
                   value: {
-                    size: decodedTx.size,
-                    readableStrings:
-                      decodedTx.readableStrings?.slice(0, 3) || [],
                     addresses: decodedTx.addresses || [],
                     amounts: decodedTx.amounts || [],
                   },
@@ -453,16 +282,9 @@ function SectionExplorer() {
 
               txInfo.messages = messages;
 
-              // Console log untuk final transaction info
-              console.log("=== FINAL TRANSACTION INFO ===");
-              console.log("TX Info:", txInfo);
-              console.log("Messages:", txInfo.messages);
-              console.log("Fee:", txInfo.fee);
-              console.log("================================");
-
               recentTxs.push(txInfo);
             } catch (txError) {
-              const decodedTx = decodeTransactionData(tx, []);
+              const decodedTx = await decodeTransactionData(tx);
               const basicTxInfo: TransactionInfo = {
                 hash: txHash,
                 height: blockHeight,
@@ -471,7 +293,6 @@ function SectionExplorer() {
                   {
                     type: "Decoded Transaction",
                     value: {
-                      size: decodedTx.size,
                       detectedTypes: decodedTx.detectedMessageTypes || [],
                       addresses: decodedTx.addresses || [],
                       amounts: decodedTx.amounts || [],
@@ -493,12 +314,6 @@ function SectionExplorer() {
         }
       }
 
-      // Console log untuk semua transaksi yang akan di-merge
-      console.log("=== RECENT TRANSACTIONS FETCHED ===");
-      console.log("Total fetched transactions:", recentTxs.length);
-      console.log("Recent transactions:", recentTxs);
-      console.log("====================================");
-
       // Merge new transactions with existing ones, avoiding duplicates
       setAllTransactions((prevTxs) => {
         const existingHashes = new Set(prevTxs.map((tx) => tx.hash));
@@ -508,14 +323,6 @@ function SectionExplorer() {
         const combined = [...newTxs, ...prevTxs]
           .sort((a, b) => b.height - a.height || b.index - a.index)
           .slice(0, 100); // Keep only latest 100 transactions
-
-        // Console log untuk final combined transactions
-        console.log("=== FINAL COMBINED TRANSACTIONS ===");
-        console.log("Previous transactions count:", prevTxs.length);
-        console.log("New transactions count:", newTxs.length);
-        console.log("Combined transactions count:", combined.length);
-        console.log("Combined transactions:", combined);
-        console.log("===================================");
 
         return combined;
       });
@@ -695,24 +502,6 @@ function SectionExplorer() {
               const totalPages = Math.ceil(
                 allTransactions.length / transactionsPerPage
               );
-
-              // Console log untuk data yang akan di-render di table
-              console.log("=== TABLE RENDER DATA ===");
-              console.log("All transactions count:", allTransactions.length);
-              console.log("Current page:", currentPage);
-              console.log("Transactions per page:", transactionsPerPage);
-              console.log(
-                "Index range:",
-                indexOfFirstTransaction,
-                "to",
-                indexOfLastTransaction
-              );
-              console.log(
-                "Current transactions for table:",
-                currentTransactions
-              );
-              console.log("Total pages:", totalPages);
-              console.log("========================");
 
               const handlePageChange = (pageNumber: number) => {
                 setCurrentPage(pageNumber);
@@ -966,7 +755,7 @@ function SectionExplorer() {
                                       onClick={() => handlePageChange(i)}
                                       className={`w-10 h-10 rounded-lg transition-all duration-200 hover:scale-105 ${
                                         currentPage === i
-                                          ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/25"
+                                          ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/25"
                                           : "bg-slate-700 text-slate-300 hover:bg-slate-600"
                                       }`}
                                     >

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
 import { Comet38Client } from "@cosmjs/tendermint-rpc";
 import { decodeTxRaw } from "@cosmjs/proto-signing";
+import type { Event } from "@cosmjs/tendermint-rpc/build/comet38/responses";
 import Navbar from "../components/Navbar";
 
 interface TransactionMessage {
@@ -30,7 +31,7 @@ interface TransactionDetail {
   success: boolean;
   rawLog?: string;
   memo?: string;
-  events?: any[];
+  events?: readonly Event[];
 }
 
 function DetailTx() {
@@ -60,10 +61,6 @@ function DetailTx() {
     }
   };
 
-  const formatHash = (hash: string) => {
-    return `${hash.slice(0, 8)}...${hash.slice(-8)}`;
-  };
-
   const formatAmount = (amount: string) => {
     if (!amount) return "-";
 
@@ -87,10 +84,7 @@ function DetailTx() {
     return new Date(timestamp).toLocaleString();
   };
 
-  const decodeTransactionData = async (
-    txBytes: Uint8Array,
-    txEvents: any[]
-  ) => {
+  const decodeTransactionData = async (txBytes: Uint8Array) => {
     try {
       const decodedTx = decodeTxRaw(txBytes);
       console.log("Decoded transaction:", decodedTx);
@@ -99,91 +93,142 @@ function DetailTx() {
       const amounts: string[] = [];
       const addresses: string[] = [];
 
-      decodedTx.body.messages.forEach((msg: any) => {
-        const typeUrl = msg.typeUrl || "Unknown";
+      decodedTx.body.messages.forEach((msg: unknown) => {
+        const message = msg as {
+          typeUrl?: string;
+          value?: {
+            amount?: unknown;
+            coins?: unknown;
+            value?: unknown;
+            fromAddress?: string;
+            from_address?: string;
+            toAddress?: string;
+            to_address?: string;
+            delegatorAddress?: string;
+            delegator_address?: string;
+            validatorAddress?: string;
+            validator_address?: string;
+            token?: {
+              amount?: string;
+              denom?: string;
+            };
+            sender?: string;
+            receiver?: string;
+          };
+        };
+
+        const typeUrl = message.typeUrl || "Unknown";
         detectedMessageTypes.push(typeUrl);
 
         console.log(`Processing message type: ${typeUrl}`);
-        console.log("Message value:", msg.value);
+        console.log("Message value:", message.value);
 
         // Extract amounts based on message type
         if (typeUrl === "/cosmos.bank.v1beta1.MsgSend") {
           // Handle MsgSend - multiple patterns for amount extraction
           const patterns = [
-            () => msg.value.amount, // Standard array
-            () => msg.value.coins, // Alternative field name
-            () => msg.value.value, // Nested value
-            () => [msg.value], // Single object as array
+            () => message.value?.amount,
+            () => message.value?.coins,
+            () => message.value?.value,
+            () => [message.value],
           ];
 
           for (const pattern of patterns) {
             try {
               const amountData = pattern();
               if (Array.isArray(amountData) && amountData.length > 0) {
-                amountData.forEach((coin: any) => {
-                  if (coin && coin.amount && coin.denom) {
-                    amounts.push(`${coin.amount}${coin.denom}`);
+                amountData.forEach((coin: unknown) => {
+                  const coinData = coin as {
+                    amount?: string;
+                    denom?: string;
+                  };
+                  if (coinData && coinData.amount && coinData.denom) {
+                    amounts.push(`${coinData.amount}${coinData.denom}`);
                   }
                 });
                 break;
               }
-            } catch (e) {
+            } catch {
               continue;
             }
           }
 
           // Extract addresses (from_address, to_address)
-          if (msg.value.fromAddress || msg.value.from_address) {
-            addresses.push(msg.value.fromAddress || msg.value.from_address);
+          if (message.value?.fromAddress || message.value?.from_address) {
+            addresses.push(
+              message.value.fromAddress || message.value.from_address || ""
+            );
           }
-          if (msg.value.toAddress || msg.value.to_address) {
-            addresses.push(msg.value.toAddress || msg.value.to_address);
+          if (message.value?.toAddress || message.value?.to_address) {
+            addresses.push(
+              message.value.toAddress || message.value.to_address || ""
+            );
           }
         } else if (
           typeUrl === "/cosmos.staking.v1beta1.MsgDelegate" ||
           typeUrl === "/cosmos.staking.v1beta1.MsgUndelegate"
         ) {
-          if (
-            msg.value.amount &&
-            msg.value.amount.amount &&
-            msg.value.amount.denom
-          ) {
-            amounts.push(`${msg.value.amount.amount}${msg.value.amount.denom}`);
+          const amountData = message.value?.amount as
+            | {
+                amount?: string;
+                denom?: string;
+              }
+            | undefined;
+          if (amountData?.amount && amountData?.denom) {
+            amounts.push(`${amountData.amount}${amountData.denom}`);
           }
-          if (msg.value.delegatorAddress || msg.value.delegator_address) {
+          if (
+            message.value?.delegatorAddress ||
+            message.value?.delegator_address
+          ) {
             addresses.push(
-              msg.value.delegatorAddress || msg.value.delegator_address
+              message.value.delegatorAddress ||
+                message.value.delegator_address ||
+                ""
             );
           }
-          if (msg.value.validatorAddress || msg.value.validator_address) {
+          if (
+            message.value?.validatorAddress ||
+            message.value?.validator_address
+          ) {
             addresses.push(
-              msg.value.validatorAddress || msg.value.validator_address
+              message.value.validatorAddress ||
+                message.value.validator_address ||
+                ""
             );
           }
         } else if (
           typeUrl === "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward"
         ) {
           // For withdraw rewards, amounts are in transaction events
-          if (msg.value.delegatorAddress || msg.value.delegator_address) {
+          if (
+            message.value?.delegatorAddress ||
+            message.value?.delegator_address
+          ) {
             addresses.push(
-              msg.value.delegatorAddress || msg.value.delegator_address
+              message.value.delegatorAddress ||
+                message.value?.delegator_address ||
+                ""
             );
           }
-          if (msg.value.validatorAddress || msg.value.validator_address) {
+          if (
+            message.value?.validatorAddress ||
+            message.value?.validator_address
+          ) {
             addresses.push(
-              msg.value.validatorAddress || msg.value.validator_address
+              message.value.validatorAddress ||
+                message.value?.validator_address ||
+                ""
             );
           }
         } else if (typeUrl === "/ibc.applications.transfer.v1.MsgTransfer") {
-          if (
-            msg.value.token &&
-            msg.value.token.amount &&
-            msg.value.token.denom
-          ) {
-            amounts.push(`${msg.value.token.amount}${msg.value.token.denom}`);
+          if (message.value?.token?.amount && message.value?.token?.denom) {
+            amounts.push(
+              `${message.value.token.amount}${message.value.token.denom}`
+            );
           }
-          if (msg.value.sender) addresses.push(msg.value.sender);
-          if (msg.value.receiver) addresses.push(msg.value.receiver);
+          if (message.value?.sender) addresses.push(message.value.sender);
+          if (message.value?.receiver) addresses.push(message.value.receiver);
         }
       });
 
@@ -241,10 +286,7 @@ function DetailTx() {
       }
 
       const txResult = searchResult.txs[0];
-      const decodedData = await decodeTransactionData(
-        txResult.tx,
-        txResult.result.events || []
-      );
+      const decodedData = await decodeTransactionData(txResult.tx);
 
       // Extract fee from transaction events if available
       let extractedFee = decodedData.fee;
@@ -268,7 +310,7 @@ function DetailTx() {
       }
 
       const messages: TransactionMessage[] =
-        decodedData.detectedMessageTypes.map((type, index) => ({
+        decodedData.detectedMessageTypes.map((type) => ({
           type,
           value: {
             addresses: decodedData.addresses,

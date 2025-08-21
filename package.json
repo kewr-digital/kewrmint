@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "mainnet": "vite build && scp -r dist/ root@103.127.133.152:/root/thoth-fe",
-    "serve": "serve -s ./dist -l 5173"
+    "serve": "serve -s ./dist -l 2222"
   },
   "dependencies": {
     "@cosmjs/crypto": "^0.34.0",
